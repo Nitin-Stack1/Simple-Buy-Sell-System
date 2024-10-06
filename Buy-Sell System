@@ -1,0 +1,228 @@
+package com.project.BuySellSystem; 
+
+public interface TradeInterfaces {
+    void buyItem();
+    void sellIte();
+    void viewTransaction();
+}
+package com.project.BuySellSystem;
+
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class Transaction {
+    //base class : transaction (encapsulation)
+    private String transactionID;
+    private String date;
+
+    public Transaction(String transactionID, String date) {
+        this.transactionID = transactionID;
+        this.date = date;
+    }
+
+    public String getTransactionID() {
+        return transactionID;
+    }
+
+    public String getDate() {
+        return date;
+    }
+    //using file writer for storing transaction data
+    public void writeTranscation(String type , String itemName , double amount){
+        //true for appending to file
+        try(FileWriter writer = new FileWriter(type + "Transaction.txt",true)){
+            writer.write(type+"Tansaction: ID= "+transactionID+", Date= "+date+", Item Name= "+itemName+", Amount= "+amount+"\n");
+
+        }catch(IOException ex){
+            System.out.printf("Error in writin to File: %s "+ ex.getMessage());
+    }
+    }
+}
+package com.project.BuySellSystem;
+
+public class Product {
+    String name;
+    double price;
+    int quantity;
+
+    public Product(String name, double price, int quantity) {
+        this.name = name;
+        this.price = price;
+        this.quantity = quantity;
+    }
+}
+package com.project.BuySellSystem;
+
+import java.io.FileReader;
+import java.io.IOException;
+import java.sql.SQLOutput;
+import java.util.Scanner;
+
+public class TradeSystem implements TradeInterfaces {
+
+    static Product[] products ={
+            new Product("Laptop",45000,10),
+            new Product("Mobile",40000,5),
+            new Product("Ipad",80000,2),
+            new Product("Iphone",123000,2)
+    };
+    public static void displayProducts(){
+        System.out.println("Available Products: ");
+        for(int i=0;i< products.length;i++){
+            System.out.println((i+1)+". "+products[i].name+" - Price: "+products[i].price+" ,Quantity: "+products[i].quantity);
+        }
+    }
+
+    static public int transactionCounter = 1;
+    //method for generating transaction id
+    public static String generateTransactionID(){
+        return String.format("T%03d",transactionCounter++);//example T001,T002......
+    }
+
+
+    @Override
+    public void buyItem() {
+        Scanner sc = new Scanner(System.in);
+        displayProducts();
+        System.out.println("Enter the product Number to Buy: ");
+        int productIndex = sc.nextInt()-1;
+        if(productIndex>=0 && productIndex<products.length){
+            Product product = products[productIndex];
+
+            if(product.quantity>0){
+                System.out.print("Enter the Quantity to Buy: ");
+                int quan = sc.nextInt();
+
+                if(quan<=product.quantity){
+                    product.quantity -=quan;//reducing stock when purchased
+                    String transactionID = generateTransactionID();
+                    System.out.print("Enter the TransactionID: "+transactionID);
+                    System.out.println();
+                    System.out.print("Enter the Date (YYYY-MM-DD): ");
+                    String date = sc.next();
+
+
+                    //creating buy transaction in which the data store
+                    Transaction transaction = new Transaction(transactionID,date);
+                    transaction.writeTranscation("Buy",product.name, product.price*quan);
+                    System.out.println("Purchase Successfull!"+quan+" "+ product.name+"(s) bought");
+                }else{
+                    System.out.println("Insufficient stocks");
+                }
+            } else{
+                System.out.println("Product out of quantity");
+            }
+
+
+        }else {
+            System.out.println("Invalid Product Selection😢");
+        }
+        System.out.println();
+    }
+
+    @Override
+    public void sellIte() {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter the Product/Item Name you want to Sell: ");
+        String name = sc.next();
+        System.out.print("Enter the Selling Price: ");
+        double price = sc.nextDouble();
+        System.out.print("Enter the Selling Quantity: ");
+        int quan = sc.nextInt();
+        String transactionID = generateTransactionID();
+        System.out.print("Enter the TransactionID: "+transactionID);
+        System.out.println();
+        System.out.print("Enter the Date (YYYY-MM-DD): ");
+        String date = sc.next();
+        boolean productExists = false;
+
+        //doing array traversing for searching
+        for(int i=0;i<products.length;i++){
+            if(products[i].name.equalsIgnoreCase(name)){
+                products[i].quantity+=quan;//increasing stock if exists
+                productExists=true;
+                break;
+
+            }
+        }
+
+        if(!productExists){
+            System.out.println("Product not found, but added to inverntory");
+        }
+
+        Transaction transaction = new Transaction(transactionID,date);
+        transaction.writeTranscation("Sell",name,price*quan);
+        System.out.println("Your Product"+name+" has been sold! "+quan+" "+ " item added to inventory");
+        System.out.println();
+
+    }
+
+
+    @Override
+    public void viewTransaction() {
+        try{
+            System.out.println("\nBuy Transaction: ");
+            FileReader fBuy = new FileReader("BuyTransaction.txt");
+            int i;
+            while((i=fBuy.read())!=-1){
+                System.out.print((char)i);
+
+            }
+            fBuy.close();
+
+
+            //for sell transaction
+            FileReader fSell = new FileReader("SellTransaction.txt");
+            while((i=fSell.read())!=-1){
+                System.out.print((char)i);
+
+            }
+            fSell.close();
+        }catch(IOException e){
+            System.out.print("Error reading transaction: "+e.getMessage());
+        }
+        System.out.println();
+
+    }
+}
+package com.project.BuySellSystem;
+
+import java.util.Scanner;
+
+public class Test {
+    public static void main(String[] args) {
+        TradeSystem system = new TradeSystem();
+        Scanner sc = new Scanner(System.in);
+        boolean exit = false;
+         while(!exit){
+             System.out.println("\nWelcome to Simple Trade System: ");
+             System.out.println("1. Buy an item");
+             System.out.println("2. Sell an item");
+             System.out.println("3. View Transaction");
+             System.out.println("4. Exit");
+             System.out.print("Choose an Option: ");
+
+             int choice = sc.nextInt();
+
+             switch (choice){
+                 case 1:
+                     system.buyItem();
+                     break;
+                 case 2:
+                     system.sellIte();
+                     break;
+                 case 3:
+                     system.viewTransaction();
+                     break;
+                 case 4:
+                     exit = true;
+                     System.out.println("Thank You For Using SimpleTrade");
+                     break;
+                 default :
+                     System.out.println("Invalid Choice , try again.");
+             }
+
+
+         }
+    }
+}
